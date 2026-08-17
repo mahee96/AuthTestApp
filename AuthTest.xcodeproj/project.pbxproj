@@ -8,7 +8,6 @@
 
 /* Begin PBXBuildFile section */
 		A809C87030337F45005DF922 /* AnisetteKit in Frameworks */ = {isa = PBXBuildFile; productRef = A809C86F30337F45005DF922 /* AnisetteKit */; };
-		A809C8963033A8F3005DF922 /* CodeSigning.xcconfig in Resources */ = {isa = PBXBuildFile; fileRef = A809C8953033A8F3005DF922 /* CodeSigning.xcconfig */; };
 		A88D8142300E7A2A0085B306 /* AltSign-Static in Frameworks */ = {isa = PBXBuildFile; productRef = A88D8141300E7A2A0085B306 /* AltSign-Static */; };
 /* End PBXBuildFile section */
 
@@ -144,7 +143,6 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				A809C8963033A8F3005DF922 /* CodeSigning.xcconfig in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
