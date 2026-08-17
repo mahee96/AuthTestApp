@@ -89,20 +89,22 @@ if command -v xcbeautify >/dev/null 2>&1; then
         -scheme "$SCHEME" \
         -configuration "$CONFIGURATION" \
         -archivePath "$ARCHIVE_PATH" \
-        -destination "generic/platform=iOS" \
+        -sdk iphoneos \
         CODE_SIGNING_ALLOWED=NO \
         CODE_SIGNING_REQUIRED=NO \
-        CODE_SIGN_IDENTITY="" | xcbeautify
+        CODE_SIGN_IDENTITY="" \
+        AD_HOC_CODE_SIGNING_ALLOWED=YES | xcbeautify
 else
     xcodebuild archive \
         -project "$SCHEME.xcodeproj" \
         -scheme "$SCHEME" \
         -configuration "$CONFIGURATION" \
         -archivePath "$ARCHIVE_PATH" \
-        -destination "generic/platform=iOS" \
+        -sdk iphoneos \
         CODE_SIGNING_ALLOWED=NO \
         CODE_SIGNING_REQUIRED=NO \
-        CODE_SIGN_IDENTITY=""
+        CODE_SIGN_IDENTITY="" \
+        AD_HOC_CODE_SIGNING_ALLOWED=YES
 fi
 
 if [ ! -d "$APP_PATH" ]; then
