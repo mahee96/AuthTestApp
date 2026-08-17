@@ -27,7 +27,7 @@ jobs:
   build:
     name: Build IPA
     if: ${{ github.event_name != 'pull_request' || github.event.pull_request.draft == false }}
-    runs-on: macos-15
+    runs-on: macos-26
     permissions:
       contents: write
       pull-requests: write
@@ -58,18 +58,36 @@ jobs:
             IPA_NAME="AuthTest-${TAG_NAME}.ipa"
             IS_RELEASE="true"
             RELEASE_TAG="${TAG_NAME}"
-            RELEASE_TITLE="Release ${TAG_NAME}"
+            if [[ "$TAG_NAME" =~ ^v ]]; then
+              RELEASE_TITLE="${TAG_NAME}"
+            else
+              RELEASE_TITLE="v${TAG_NAME}"
+            fi
             IS_PRERELEASE="false"
           elif [ "${{ github.ref_name }}" = "main" ]; then
             # Push to main -> Nightly Release
             SHORT_SHA=$(git rev-parse --short HEAD)
+            FULL_SHA="${{ github.sha }}"
             NORMALIZED_VERSION="${BASE_VERSION}-nightly.${{ github.run_number }}+${SHORT_SHA}"
             sed -i '' "s/MARKETING_VERSION = .*/MARKETING_VERSION = ${NORMALIZED_VERSION}/" Build.xcconfig
             IPA_NAME="AuthTest-${NORMALIZED_VERSION}.ipa"
             IS_RELEASE="true"
             RELEASE_TAG="nightly"
-            RELEASE_TITLE="Nightly Build (${NORMALIZED_VERSION})"
+            RELEASE_TITLE="Nightly"
             IS_PRERELEASE="true"
+
+            UTC_TIME=$(date -u "+%a %b %d %H:%M:%S %Y")
+            UTC_DATE=$(date -u "+%Y-%m-%d")
+
+            cat << EOF > release_notes.md
+## Build Info
+
+Built at (UTC): \`${UTC_TIME}\`
+Built at (UTC date): \`${UTC_DATE}\`
+Commit SHA: \`${FULL_SHA}\`
+Version: \`${NORMALIZED_VERSION}\`
+
+EOF
           else
             # Other branch pushes -> Build & artifact only (no GitHub Release)
             SAFE_BRANCH=$(echo "${{ github.ref_name }}" | tr '/' '-')
@@ -92,7 +110,7 @@ jobs:
       - name: Setup Xcode
         uses: maxim-lobanov/setup-xcode@v1.6.0
         with:
-          xcode-version: "16.2"
+          xcode-version: "26.4"
 
       - name: Install Tools
         run: brew install ldid xcbeautify
@@ -201,12 +219,13 @@ jobs:
         with:
           tag_name: ${{ env.RELEASE_TAG }}
           name: ${{ env.RELEASE_TITLE }}
+          body_path: ${{ hashFiles('release_notes.md') != '' && 'release_notes.md' || '' }}
           target_commitish: ${{ github.sha }}
           files: |
             ${{ env.IPA_NAME }}
             ${{ env.IPA_NAME }}.sha256
           prerelease: ${{ env.IS_PRERELEASE == 'true' }}
-          generate_release_notes: ${{ env.RELEASE_TAG != 'nightly' }}
+          generate_release_notes: true
           make_latest: ${{ env.RELEASE_TAG != 'nightly' }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
