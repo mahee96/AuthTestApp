@@ -63,12 +63,12 @@ jobs:
           elif [ "${{ github.ref_name }}" = "main" ]; then
             # Push to main -> Nightly Release
             SHORT_SHA=$(git rev-parse --short HEAD)
-            NORMALIZED_VERSION="${BASE_VERSION}-nightly+${SHORT_SHA}"
+            NORMALIZED_VERSION="${BASE_VERSION}-nightly.${{ github.run_number }}+${SHORT_SHA}"
             sed -i '' "s/MARKETING_VERSION = .*/MARKETING_VERSION = ${NORMALIZED_VERSION}/" Build.xcconfig
-            IPA_NAME="AuthTest.ipa"
+            IPA_NAME="AuthTest-${NORMALIZED_VERSION}.ipa"
             IS_RELEASE="true"
             RELEASE_TAG="nightly"
-            RELEASE_TITLE="Nightly Build"
+            RELEASE_TITLE="Nightly Build (${NORMALIZED_VERSION})"
             IS_PRERELEASE="true"
           else
             # Other branch pushes -> Build & artifact only (no GitHub Release)
@@ -76,7 +76,7 @@ jobs:
             SHORT_SHA=$(git rev-parse --short HEAD)
             NORMALIZED_VERSION="${BASE_VERSION}-${SAFE_BRANCH}+${SHORT_SHA}"
             sed -i '' "s/MARKETING_VERSION = .*/MARKETING_VERSION = ${NORMALIZED_VERSION}/" Build.xcconfig
-            IPA_NAME="AuthTest-${SAFE_BRANCH}.ipa"
+            IPA_NAME="AuthTest-${NORMALIZED_VERSION}.ipa"
             IS_RELEASE="false"
             RELEASE_TAG=""
             RELEASE_TITLE=""
@@ -92,13 +92,41 @@ jobs:
       - name: Select Xcode
         run: sudo xcode-select -s /Applications/Xcode_16.2.app || true
 
-      - name: Install ldid
-        run: brew install ldid
+      - name: Install Tools
+        run: brew install ldid xcbeautify
+
+      - name: Restore Cache (exact)
+        id: xcode-cache-exact
+        uses: actions/cache/restore@v4
+        with:
+          path: |
+            ~/Library/Developer/Xcode/DerivedData
+            ~/Library/Caches/org.swift.swiftpm
+          key: xcode-build-cache-${{ github.ref_name }}-${{ github.sha }}
+
+      - name: Restore Cache (fallback)
+        if: steps.xcode-cache-exact.outputs.cache-hit != 'true'
+        id: xcode-cache-fallback
+        uses: actions/cache/restore@v4
+        with:
+          path: |
+            ~/Library/Developer/Xcode/DerivedData
+            ~/Library/Caches/org.swift.swiftpm
+          key: xcode-build-cache-${{ github.ref_name }}-
 
       - name: Build & Package IPA
         run: |
           ./build.sh --clean --output "${{ env.IPA_NAME }}"
           shasum -a 256 "${{ env.IPA_NAME }}" > "${{ env.IPA_NAME }}.sha256"
+
+      - name: Save Cache
+        if: steps.xcode-cache-exact.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: |
+            ~/Library/Developer/Xcode/DerivedData
+            ~/Library/Caches/org.swift.swiftpm
+          key: xcode-build-cache-${{ github.ref_name }}-${{ github.sha }}
 
       - name: Upload IPA Artifact
         id: upload-artifact

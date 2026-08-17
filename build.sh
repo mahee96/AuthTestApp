@@ -83,15 +83,27 @@ fi
 mkdir -p "$BUILD_DIR"
 
 echo "==> Archiving $SCHEME ($CONFIGURATION)..."
-xcodebuild archive \
-    -project "$SCHEME.xcodeproj" \
-    -scheme "$SCHEME" \
-    -configuration "$CONFIGURATION" \
-    -archivePath "$ARCHIVE_PATH" \
-    -destination "generic/platform=iOS" \
-    CODE_SIGNING_ALLOWED=NO \
-    CODE_SIGNING_REQUIRED=NO \
-    CODE_SIGN_IDENTITY=""
+if command -v xcbeautify >/dev/null 2>&1; then
+    xcodebuild archive \
+        -project "$SCHEME.xcodeproj" \
+        -scheme "$SCHEME" \
+        -configuration "$CONFIGURATION" \
+        -archivePath "$ARCHIVE_PATH" \
+        -destination "generic/platform=iOS" \
+        CODE_SIGNING_ALLOWED=NO \
+        CODE_SIGNING_REQUIRED=NO \
+        CODE_SIGN_IDENTITY="" | xcbeautify
+else
+    xcodebuild archive \
+        -project "$SCHEME.xcodeproj" \
+        -scheme "$SCHEME" \
+        -configuration "$CONFIGURATION" \
+        -archivePath "$ARCHIVE_PATH" \
+        -destination "generic/platform=iOS" \
+        CODE_SIGNING_ALLOWED=NO \
+        CODE_SIGNING_REQUIRED=NO \
+        CODE_SIGN_IDENTITY=""
+fi
 
 if [ ! -d "$APP_PATH" ]; then
     echo "Error: Application bundle not found at $APP_PATH" >&2

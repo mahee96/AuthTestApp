@@ -4,3 +4,8 @@
 **/xcschememanagement.plist
 CodeSigning.xcconfig
 **/.DS_Store
+build
+**/*.xcarchive/
+*.xcarchive/
+*.ipa
+*.apk*
