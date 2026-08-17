@@ -1,0 +1,24 @@
+{
+  "originHash" : "fb758f87969a2d0056220a777f94023dfc1f3bf36e479f4991656241369776fd",
+  "pins" : [
+    {
+      "identity" : "altsign",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/SideStore/AltSign",
+      "state" : {
+        "branch" : "develop",
+        "revision" : "16af0d75bf8c8495b0b34e36c5051a9977e0ea28"
+      }
+    },
+    {
+      "identity" : "anisettekit",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/mahee96/AnisetteKit",
+      "state" : {
+        "branch" : "main",
+        "revision" : "38a0d6dc5db9dd3257cfc27bb6dc9c05d23c84e3"
+      }
+    }
+  ],
+  "version" : 3
+}
