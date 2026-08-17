@@ -7,7 +7,7 @@
       "location" : "https://github.com/SideStore/AltSign",
       "state" : {
         "branch" : "develop",
-        "revision" : "16af0d75bf8c8495b0b34e36c5051a9977e0ea28"
+        "revision" : "ebc345b92c43899fbd473c34710096cebd068998"
       }
     },
     {
@@ -16,7 +16,7 @@
       "location" : "https://github.com/mahee96/AnisetteKit",
       "state" : {
         "branch" : "main",
-        "revision" : "38a0d6dc5db9dd3257cfc27bb6dc9c05d23c84e3"
+        "revision" : "9a09fc167a673b395f8540d0381fc15e5941a640"
       }
     }
   ],
