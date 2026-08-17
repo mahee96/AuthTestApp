@@ -53,7 +53,6 @@
 				A88D8117300E52D40085B306 /* Resources */,
 				A809C88030338000005DF922 /* Build.xcconfig */,
 				A809C8953033A8F3005DF922 /* CodeSigning.xcconfig */,
-				4EB3C76F2D96715400C1B22C /* Frameworks */,
 				4EB3C7592D96631A00C1B22C /* Products */,
 			);
 			sourceTree = "<group>";
@@ -64,13 +63,6 @@
 				4EB3C7582D96631A00C1B22C /* AuthTest.app */,
 			);
 			name = Products;
-			sourceTree = "<group>";
-		};
-		4EB3C76F2D96715400C1B22C /* Frameworks */ = {
-			isa = PBXGroup;
-			children = (
-			);
-			name = Frameworks;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */

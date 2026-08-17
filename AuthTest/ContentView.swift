@@ -12,6 +12,12 @@ import AltSign
 import AnisetteKit
 
 struct ContentView: View {
+    private static let defaultXcodeVersion = "26.0 (26A242)"
+    private static let defaultRoutingInfo = "17106176"
+    private static let defaultLocalUserID = "0000000000000000000000000000000000000000000000000000000000000001"
+    private static let storeServicesLib = "libstoreservicescore.so"
+    private static let coreADILib = "libCoreADI.so"
+
     @State private var appleID = ""
     @State private var password = ""
     @State private var statusMessage = "Enter credentials to start"
@@ -314,9 +320,9 @@ struct ContentView: View {
                 let filename = url.lastPathComponent.lowercased()
                 let targetName: String?
                 if filename.contains("storeservices") {
-                    targetName = "libstoreservicescore.so"
+                    targetName = Self.storeServicesLib
                 } else if filename.contains("coreadi") {
-                    targetName = "libCoreADI.so"
+                    targetName = Self.coreADILib
                 } else {
                     targetName = nil
                 }
@@ -360,8 +366,8 @@ struct ContentView: View {
     func checkLibrariesReady() {
         let cachesURL = FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask).first!
         let fm = FileManager.default
-        let hasSSC = fm.fileExists(atPath: cachesURL.appendingPathComponent("libstoreservicescore.so").path)
-        let hasCoreADI = fm.fileExists(atPath: cachesURL.appendingPathComponent("libCoreADI.so").path)
+        let hasSSC = fm.fileExists(atPath: cachesURL.appendingPathComponent(Self.storeServicesLib).path)
+        let hasCoreADI = fm.fileExists(atPath: cachesURL.appendingPathComponent(Self.coreADILib).path)
 
         if hasSSC && hasCoreADI && LocalAnisetteProvider.validateLibrariesExist(at: cachesURL) {
             isLibrariesReady = true
@@ -463,9 +469,9 @@ struct ContentView: View {
                 "deviceSerialNumber": "0",
                 "machineID": headers["X-Apple-I-MD-M"] ?? "",
                 "oneTimePassword": headers["X-Apple-I-MD"] ?? "",
-                "routingInfo": headers["X-Apple-I-MD-RINFO"] ?? "17106176",
+                "routingInfo": headers["X-Apple-I-MD-RINFO"] ?? Self.defaultRoutingInfo,
                 "deviceDescription": provider.clientInfo,
-                "localUserID": headers["X-Apple-I-MD-LU"] ?? "0000000000000000000000000000000000000000000000000000000000000001",
+                "localUserID": headers["X-Apple-I-MD-LU"] ?? Self.defaultLocalUserID,
                 "deviceUniqueIdentifier": identifier.uuidString.uppercased(),
                 "date": dateString,
                 "locale": Locale.current.identifier.components(separatedBy: "@").first ?? "en_US",
@@ -488,6 +494,7 @@ struct ContentView: View {
                 appleID: self.appleID,
                 password: self.password,
                 anisetteData: anisetteData,
+                xcodeVersion: Self.defaultXcodeVersion,
                 verificationHandler: { completion in
                     Task { @MainActor in
                         self.isAuthenticating = false
