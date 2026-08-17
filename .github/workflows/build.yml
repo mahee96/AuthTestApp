@@ -42,6 +42,7 @@ jobs:
       - name: Setup Version & Output Filename
         id: versioning
         run: |
+          touch release_notes.md
           BASE_VERSION=$(grep 'MARKETING_VERSION' Build.xcconfig | cut -d '=' -f2 | tr -d ' ')
 
           if [ "${{ github.event_name }}" = "pull_request" ]; then
@@ -79,15 +80,8 @@ jobs:
             UTC_TIME=$(date -u "+%a %b %d %H:%M:%S %Y")
             UTC_DATE=$(date -u "+%Y-%m-%d")
 
-            cat << EOF > release_notes.md
-## Build Info
-
-Built at (UTC): \`${UTC_TIME}\`
-Built at (UTC date): \`${UTC_DATE}\`
-Commit SHA: \`${FULL_SHA}\`
-Version: \`${NORMALIZED_VERSION}\`
-
-EOF
+            printf "## Build Info\n\nBuilt at (UTC): \`%s\`\nBuilt at (UTC date): \`%s\`\nCommit SHA: \`%s\`\nVersion: \`%s\`\n" \
+              "${UTC_TIME}" "${UTC_DATE}" "${FULL_SHA}" "${NORMALIZED_VERSION}" > release_notes.md
           else
             # Other branch pushes -> Build & artifact only (no GitHub Release)
             SAFE_BRANCH=$(echo "${{ github.ref_name }}" | tr '/' '-')
@@ -219,7 +213,7 @@ EOF
         with:
           tag_name: ${{ env.RELEASE_TAG }}
           name: ${{ env.RELEASE_TITLE }}
-          body_path: ${{ hashFiles('release_notes.md') != '' && 'release_notes.md' || '' }}
+          body_path: release_notes.md
           target_commitish: ${{ github.sha }}
           files: |
             ${{ env.IPA_NAME }}
