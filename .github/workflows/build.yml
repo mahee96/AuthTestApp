@@ -205,7 +205,56 @@ jobs:
               body += `\n* [${ipaName}](${runUrl})`;
             }
 
-            await upsertComment(owner, repo, prNumber, "nightly-link", body);
+      - name: Prune Old Nightly Release Assets (Keep Latest 5)
+        if: ${{ env.IS_RELEASE == 'true' && env.RELEASE_TAG == 'nightly' }}
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const { owner, repo } = context.repo;
+            try {
+              const { data: release } = await github.rest.repos.getReleaseByTag({
+                owner,
+                repo,
+                tag: 'nightly'
+              });
+
+              const ipaAssets = release.assets
+                .filter(a => a.name.endsWith('.ipa'))
+                .sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
+
+              const maxExisting = 4; // 4 existing + 1 new = 5 total
+              if (ipaAssets.length > maxExisting) {
+                const toDeleteCount = ipaAssets.length - maxExisting;
+                const toDeleteIPAs = ipaAssets.slice(0, toDeleteCount);
+
+                for (const ipa of toDeleteIPAs) {
+                  core.info(`Deleting old nightly asset: ${ipa.name} (id: ${ipa.id})`);
+                  await github.rest.repos.deleteReleaseAsset({
+                    owner,
+                    repo,
+                    asset_id: ipa.id
+                  });
+
+                  const shaName = `${ipa.name}.sha256`;
+                  const shaAsset = release.assets.find(a => a.name === shaName);
+                  if (shaAsset) {
+                    core.info(`Deleting matching sha256 asset: ${shaAsset.name} (id: ${shaAsset.id})`);
+                    await github.rest.repos.deleteReleaseAsset({
+                      owner,
+                      repo,
+                      asset_id: shaAsset.id
+                    });
+                  }
+                }
+              }
+            } catch (error) {
+              if (error.status === 404) {
+                core.info("Nightly release does not exist yet; skipping asset prune.");
+              } else {
+                core.warning(`Failed to clean up old nightly assets: ${error.message}`);
+              }
+            }
 
       - name: Create or Update GitHub Release
         if: ${{ env.IS_RELEASE == 'true' }}
