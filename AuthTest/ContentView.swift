@@ -369,7 +369,7 @@ struct ContentView: View {
         let hasSSC = fm.fileExists(atPath: cachesURL.appendingPathComponent(Self.storeServicesLib).path)
         let hasCoreADI = fm.fileExists(atPath: cachesURL.appendingPathComponent(Self.coreADILib).path)
 
-        if hasSSC && hasCoreADI && LocalAnisetteProvider.validateLibrariesExist(at: cachesURL) {
+        if hasSSC && hasCoreADI && AnisetteClient.validateLibrariesExist(at: cachesURL) {
             isLibrariesReady = true
             statusMessage = "All ADI libraries ready. Enter credentials to log in."
         } else {
@@ -432,10 +432,10 @@ struct ContentView: View {
         let identifier = UUID()
         
         do {
-            if !LocalAnisetteProvider.validateLibrariesExist(at: provisioningDir) {
+            if !AnisetteClient.validateLibrariesExist(at: provisioningDir) {
                 let trimmed = packageDownloadURL.trimmingCharacters(in: .whitespacesAndNewlines)
                 guard let url = URL(string: trimmed), !trimmed.isEmpty else {
-                    throw LocalAnisetteError.librariesNotFound(
+                    throw AnisetteError.librariesNotFound(
                         reason: "Required ADI libraries missing. Please provide a valid Package Download URL to extract them automatically."
                     )
                 }
@@ -445,17 +445,22 @@ struct ContentView: View {
                 }
             }
 
-            let provider = try LocalAnisetteProvider(provisioningDir: provisioningDir) {
+            let provider: any AnisetteDataProvider
+            #if os(macOS)
+            provider = useUnicornEmulation ? UnicornAnisetteDataProvider() : NativeAnisetteDataProvider()
+            #else
+            provider = UnicornAnisetteDataProvider()
+            #endif
+
+            let client = try AnisetteClient(
+                provisioningDir: provisioningDir,
+                provider: provider
+            ) {
                 provisioningDir
             }
-            let headers: [String: String]
-            if useUnicornEmulation {
-                print("[AuthTest] Retrieving anisette headers via Unicorn Emulation (getHeadersUC)...")
-                headers = try await provider.getHeadersUC(identifier: identifier)
-            } else {
-                print("[AuthTest] Retrieving anisette headers via Native loader (getHeaders)...")
-                headers = try await provider.getHeaders(identifier: identifier)
-            }
+
+            print("[AuthTest] Retrieving anisette headers...")
+            let (headers, _) = try await client.getAnisetteData(identifier: identifier)
 
             
             let formatter = DateFormatter()
@@ -470,7 +475,7 @@ struct ContentView: View {
                 "machineID": headers["X-Apple-I-MD-M"] ?? "",
                 "oneTimePassword": headers["X-Apple-I-MD"] ?? "",
                 "routingInfo": headers["X-Apple-I-MD-RINFO"] ?? Self.defaultRoutingInfo,
-                "deviceDescription": provider.clientInfo,
+                "deviceDescription": client.clientInfo,
                 "localUserID": headers["X-Apple-I-MD-LU"] ?? Self.defaultLocalUserID,
                 "deviceUniqueIdentifier": identifier.uuidString.uppercased(),
                 "date": dateString,

@@ -15,6 +15,9 @@
 		4EB3C7582D96631A00C1B22C /* AuthTest.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = AuthTest.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		A809C88030338000005DF922 /* Build.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Build.xcconfig; sourceTree = "<group>"; };
 		A809C8953033A8F3005DF922 /* CodeSigning.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = CodeSigning.xcconfig; sourceTree = "<group>"; };
+		A8A7F50B304EBB8B00176882 /* build.sh */ = {isa = PBXFileReference; lastKnownFileType = text.script.sh; path = build.sh; sourceTree = "<group>"; };
+		A8A7F50C304EBB8B00176882 /* LICENSE */ = {isa = PBXFileReference; lastKnownFileType = text; path = LICENSE; sourceTree = "<group>"; };
+		A8A7F512304EBB8B00176882 /* README.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = README.md; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -30,6 +33,7 @@
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		4EB3C75A2D96631A00C1B22C /* AuthTest */ = {isa = PBXFileSystemSynchronizedRootGroup; exceptions = (190996C92ED0FC91006411F1 /* PBXFileSystemSynchronizedBuildFileExceptionSet */, ); explicitFileTypes = {}; explicitFolders = (); path = AuthTest; sourceTree = "<group>"; };
 		A88D8117300E52D40085B306 /* Resources */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = Resources; sourceTree = "<group>"; };
+		A8A7F511304EBB8B00176882 /* others */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = others; sourceTree = "<group>"; };
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -50,6 +54,10 @@
 			children = (
 				4EB3C75A2D96631A00C1B22C /* AuthTest */,
 				A88D8117300E52D40085B306 /* Resources */,
+				A8A7F511304EBB8B00176882 /* others */,
+				A8A7F50B304EBB8B00176882 /* build.sh */,
+				A8A7F50C304EBB8B00176882 /* LICENSE */,
+				A8A7F512304EBB8B00176882 /* README.md */,
 				A809C88030338000005DF922 /* Build.xcconfig */,
 				A809C8953033A8F3005DF922 /* CodeSigning.xcconfig */,
 				4EB3C7592D96631A00C1B22C /* Products */,
