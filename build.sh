@@ -5,11 +5,13 @@ set -euo pipefail
 # Default values
 SCHEME="AuthTest"
 CONFIGURATION="Release"
-OUTPUT_IPA="AuthTest.ipa"
+OUTPUT_IPA=""
 ENTITLEMENTS="AuthTest/AuthTest-iOS.entitlements"
 DO_CLEAN=false
 DO_FAKESIGN=true
 BUILD_DIR="build"
+PLATFORM="ios"
+SDK="iphoneos"
 
 usage() {
     cat << EOF
@@ -18,7 +20,8 @@ Usage: $(basename "$0") [options]
 Options:
   -s, --scheme <name>          Xcode scheme to build (default: AuthTest)
   -c, --configuration <config> Build configuration: Debug or Release (default: Release)
-  -o, --output <file.ipa>      Output IPA filename/path (default: AuthTest.ipa)
+  -o, --output <file.ipa>      Output IPA filename/path (default: AuthTest-<platform>.ipa)
+  -p, --platform <platform>    Target platform: ios, tvos, visionos (default: ios)
   -e, --entitlements <path>    Path to entitlements file (default: AuthTest/AuthTest-iOS.entitlements)
       --clean                  Clean build artifacts before building
       --no-fakesign            Skip ad-hoc/fake-signing with entitlements
@@ -26,7 +29,8 @@ Options:
 
 Examples:
   ./build.sh
-  ./build.sh --clean --output AuthTest_v0.1.0.ipa
+  ./build.sh --platform tvos
+  ./build.sh --platform visionos --clean --output AuthTest-visionos_v0.1.0.ipa
   ./build.sh --configuration Debug --output build/AuthTest-Debug.ipa
 EOF
     exit 0
@@ -45,6 +49,27 @@ while [[ $# -gt 0 ]]; do
             ;;
         -o|--output)
             OUTPUT_IPA="$2"
+            shift 2
+            ;;
+        -p|--platform)
+            case "$2" in
+                ios|iphoneos)
+                    PLATFORM="ios"
+                    SDK="iphoneos"
+                    ;;
+                tvos|appletvos)
+                    PLATFORM="tvos"
+                    SDK="appletvos"
+                    ;;
+                visionos|xros)
+                    PLATFORM="visionos"
+                    SDK="xros"
+                    ;;
+                *)
+                    echo "Error: Unknown platform $2. Supported: ios, tvos, visionos" >&2
+                    exit 1
+                    ;;
+            esac
             shift 2
             ;;
         -e|--entitlements)
@@ -69,27 +94,31 @@ while [[ $# -gt 0 ]]; do
     esac
 done
 
+if [ -z "$OUTPUT_IPA" ]; then
+    OUTPUT_IPA="AuthTest-${PLATFORM}.ipa"
+fi
+
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$SCRIPT_DIR"
 
-ARCHIVE_PATH="$BUILD_DIR/$SCHEME.xcarchive"
+ARCHIVE_PATH="$BUILD_DIR/$SCHEME-$PLATFORM.xcarchive"
 APP_PATH="$ARCHIVE_PATH/Products/Applications/$SCHEME.app"
 
 if [ "$DO_CLEAN" = true ]; then
-    echo "==> Cleaning previous build artifacts..."
-    rm -rf "$BUILD_DIR" Payload "$OUTPUT_IPA"
+    echo "==> Cleaning previous build artifacts for $PLATFORM..."
+    rm -rf "$ARCHIVE_PATH" Payload "$OUTPUT_IPA"
 fi
 
 mkdir -p "$BUILD_DIR"
 
-echo "==> Archiving $SCHEME ($CONFIGURATION)..."
+echo "==> Archiving $SCHEME for $PLATFORM (SDK: $SDK, $CONFIGURATION)..."
 if command -v xcbeautify >/dev/null 2>&1; then
     xcodebuild archive \
         -project "$SCHEME.xcodeproj" \
         -scheme "$SCHEME" \
         -configuration "$CONFIGURATION" \
         -archivePath "$ARCHIVE_PATH" \
-        -sdk iphoneos \
+        -sdk "$SDK" \
         CODE_SIGNING_ALLOWED=NO \
         CODE_SIGNING_REQUIRED=NO \
         CODE_SIGN_IDENTITY="" \
@@ -100,7 +129,7 @@ else
         -scheme "$SCHEME" \
         -configuration "$CONFIGURATION" \
         -archivePath "$ARCHIVE_PATH" \
-        -sdk iphoneos \
+        -sdk "$SDK" \
         CODE_SIGNING_ALLOWED=NO \
         CODE_SIGNING_REQUIRED=NO \
         CODE_SIGN_IDENTITY="" \

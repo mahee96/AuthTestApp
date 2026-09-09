@@ -43,20 +43,18 @@ jobs:
         id: versioning
         run: |
           touch release_notes.md
-          BASE_VERSION=$(grep 'MARKETING_VERSION' Build.xcconfig | cut -d '=' -f2 | tr -d ' ')
+          BASE_VERSION=$(grep "MARKETING_VERSION" Build.xcconfig | cut -d "=" -f2 | tr -d " ")
 
           if [ "${{ github.event_name }}" = "pull_request" ]; then
             SHORT_SHA=$(git rev-parse --short ${{ github.event.pull_request.head.sha }})
             NORMALIZED_VERSION="${BASE_VERSION}-pr.${{ github.event.pull_request.number }}+${SHORT_SHA}"
-            sed -i '' "s/MARKETING_VERSION = .*/MARKETING_VERSION = ${NORMALIZED_VERSION}/" Build.xcconfig
-            IPA_NAME="AuthTest-${NORMALIZED_VERSION}.ipa"
+            sed -i "" "s/MARKETING_VERSION = .*/MARKETING_VERSION = ${NORMALIZED_VERSION}/" Build.xcconfig
             IS_RELEASE="false"
             RELEASE_TAG=""
             RELEASE_TITLE=""
             IS_PRERELEASE="false"
           elif [ "${{ github.ref_type }}" = "tag" ]; then
             TAG_NAME="${{ github.ref_name }}"
-            IPA_NAME="AuthTest-${TAG_NAME}.ipa"
             IS_RELEASE="true"
             RELEASE_TAG="${TAG_NAME}"
             if [[ "$TAG_NAME" =~ ^v ]]; then
@@ -71,8 +69,7 @@ jobs:
             FULL_SHA="${{ github.sha }}"
             TIMESTAMP=$(date -u "+%Y%m%dT%H%M%S")
             NORMALIZED_VERSION="${BASE_VERSION}-nightly.${TIMESTAMP}+${SHORT_SHA}"
-            sed -i '' "s/MARKETING_VERSION = .*/MARKETING_VERSION = ${NORMALIZED_VERSION}/" Build.xcconfig
-            IPA_NAME="AuthTest-${NORMALIZED_VERSION}.ipa"
+            sed -i "" "s/MARKETING_VERSION = .*/MARKETING_VERSION = ${NORMALIZED_VERSION}/" Build.xcconfig
             IS_RELEASE="true"
             RELEASE_TAG="nightly"
             RELEASE_TITLE="Nightly"
@@ -85,18 +82,17 @@ jobs:
               "${UTC_TIME}" "${UTC_DATE}" "${FULL_SHA}" "${NORMALIZED_VERSION}" > release_notes.md
           else
             # Other branch pushes -> Build & artifact only (no GitHub Release)
-            SAFE_BRANCH=$(echo "${{ github.ref_name }}" | tr '/' '-')
+            SAFE_BRANCH=$(echo "${{ github.ref_name }}" | tr "/" "-")
             SHORT_SHA=$(git rev-parse --short HEAD)
             NORMALIZED_VERSION="${BASE_VERSION}-${SAFE_BRANCH}+${SHORT_SHA}"
-            sed -i '' "s/MARKETING_VERSION = .*/MARKETING_VERSION = ${NORMALIZED_VERSION}/" Build.xcconfig
-            IPA_NAME="AuthTest-${NORMALIZED_VERSION}.ipa"
+            sed -i "" "s/MARKETING_VERSION = .*/MARKETING_VERSION = ${NORMALIZED_VERSION}/" Build.xcconfig
             IS_RELEASE="false"
             RELEASE_TAG=""
             RELEASE_TITLE=""
             IS_PRERELEASE="false"
           fi
 
-          echo "IPA_NAME=${IPA_NAME}" >> $GITHUB_ENV
+          echo "NORMALIZED_VERSION=${NORMALIZED_VERSION}" >> $GITHUB_ENV
           echo "IS_RELEASE=${IS_RELEASE}" >> $GITHUB_ENV
           echo "RELEASE_TAG=${RELEASE_TAG}" >> $GITHUB_ENV
           echo "RELEASE_TITLE=${RELEASE_TITLE}" >> $GITHUB_ENV
@@ -129,10 +125,14 @@ jobs:
             ~/Library/Caches/org.swift.swiftpm
           key: xcode-build-cache-${{ github.ref_name }}-
 
-      - name: Build & Package IPA
+      - name: Build & Package All Platform IPAs
         run: |
-          ./build.sh --clean --output "${{ env.IPA_NAME }}"
-          shasum -a 256 "${{ env.IPA_NAME }}" > "${{ env.IPA_NAME }}.sha256"
+          for PLATFORM in ios tvos visionos; do
+            PLATFORM_IPA="AuthTest-${NORMALIZED_VERSION}-${PLATFORM}.ipa"
+            echo "==> Building ${PLATFORM} (${PLATFORM_IPA})..."
+            ./build.sh --clean --platform "${PLATFORM}" --output "${PLATFORM_IPA}"
+            shasum -a 256 "${PLATFORM_IPA}" > "${PLATFORM_IPA}.sha256"
+          done
 
       - name: Save Cache
         if: steps.xcode-cache-exact.outputs.cache-hit != 'true'
@@ -143,21 +143,21 @@ jobs:
             ~/Library/Caches/org.swift.swiftpm
           key: xcode-build-cache-${{ github.ref_name }}-${{ github.sha }}
 
-      - name: Upload IPA Artifact
+      - name: Upload IPA Artifacts
         id: upload-artifact
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ env.IPA_NAME }}
+          name: AuthTest-${{ env.NORMALIZED_VERSION }}-ipas
           path: |
-            ${{ env.IPA_NAME }}
-            ${{ env.IPA_NAME }}.sha256
+            AuthTest-*.ipa
+            AuthTest-*.ipa.sha256
           if-no-files-found: error
 
       - name: Post or Update PR Comment
         if: ${{ github.event_name == 'pull_request' }}
         uses: actions/github-script@v7
         env:
-          IPA_NAME: ${{ env.IPA_NAME }}
+          NORMALIZED_VERSION: ${{ env.NORMALIZED_VERSION }}
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
@@ -194,19 +194,21 @@ jobs:
 
             const { owner, repo } = context.repo;
             const prNumber = context.issue.number;
-            const ipaName = process.env.IPA_NAME;
-            const shortSha = "${{ github.event.pull_request.head.sha }}".substring(0, 7);
+            const normVer = process.env.NORMALIZED_VERSION;
             const artifactId = "${{ steps.upload-artifact.outputs.artifact-id }}";
 
             let body = `Download the artifacts for this pull request (nightly.link):\n`;
             if (artifactId) {
-              body += `\n* [${ipaName}.zip](https://nightly.link/${owner}/${repo}/actions/artifacts/${artifactId}.zip)`;
+              body += `\n* [AuthTest-${normVer}-ipas.zip](https://nightly.link/${owner}/${repo}/actions/artifacts/${artifactId}.zip)\n`;
             } else {
               const runUrl = `${context.serverUrl}/${owner}/${repo}/actions/runs/${context.runId}`;
-              body += `\n* [${ipaName}](${runUrl})`;
+              body += `\n* [Workflow Artifacts](${runUrl})\n`;
             }
+            body += `\nIncludes IPAs for: iOS, tvOS, and visionOS.`;
 
-      - name: Prune Old Nightly Release Assets (Keep Latest 5)
+            await upsertComment(owner, repo, prNumber, "pr_artifact_link", body);
+
+      - name: Prune Old Nightly Release Assets (Keep Latest Only)
         if: ${{ env.IS_RELEASE == 'true' && env.RELEASE_TAG == 'nightly' }}
         uses: actions/github-script@v7
         with:
@@ -217,37 +219,16 @@ jobs:
               const { data: release } = await github.rest.repos.getReleaseByTag({
                 owner,
                 repo,
-                tag: 'nightly'
+                tag: "nightly"
               });
 
-              const ipaAssets = release.assets
-                .filter(a => a.name.endsWith('.ipa'))
-                .sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
-
-              const maxExisting = 4; // 4 existing + 1 new = 5 total
-              if (ipaAssets.length > maxExisting) {
-                const toDeleteCount = ipaAssets.length - maxExisting;
-                const toDeleteIPAs = ipaAssets.slice(0, toDeleteCount);
-
-                for (const ipa of toDeleteIPAs) {
-                  core.info(`Deleting old nightly asset: ${ipa.name} (id: ${ipa.id})`);
-                  await github.rest.repos.deleteReleaseAsset({
-                    owner,
-                    repo,
-                    asset_id: ipa.id
-                  });
-
-                  const shaName = `${ipa.name}.sha256`;
-                  const shaAsset = release.assets.find(a => a.name === shaName);
-                  if (shaAsset) {
-                    core.info(`Deleting matching sha256 asset: ${shaAsset.name} (id: ${shaAsset.id})`);
-                    await github.rest.repos.deleteReleaseAsset({
-                      owner,
-                      repo,
-                      asset_id: shaAsset.id
-                    });
-                  }
-                }
+              for (const asset of release.assets) {
+                core.info(`Deleting previous nightly asset: ${asset.name} (id: ${asset.id})`);
+                await github.rest.repos.deleteReleaseAsset({
+                  owner,
+                  repo,
+                  asset_id: asset.id
+                });
               }
             } catch (error) {
               if (error.status === 404) {
@@ -266,8 +247,8 @@ jobs:
           body_path: release_notes.md
           target_commitish: ${{ github.sha }}
           files: |
-            ${{ env.IPA_NAME }}
-            ${{ env.IPA_NAME }}.sha256
+            AuthTest-*.ipa
+            AuthTest-*.ipa.sha256
           prerelease: ${{ env.IS_PRERELEASE == 'true' }}
           generate_release_notes: true
           make_latest: ${{ env.RELEASE_TAG != 'nightly' }}
